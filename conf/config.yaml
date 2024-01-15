@@ -1,0 +1,91 @@
+name: config_1
+
+# Device and Model Configuration
+device: "cuda:3"
+image_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/data/flower
+figures_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_1
+model_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_1/model.pth
+loss_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_1/loss.pkl
+wandb_disabled: False
+wandb_project_name: 'PINCA'
+wandb_experiment_name: 'example_run_name_2'
+model:
+  type: "PINCA" # choices: "PINCA", "NCA"
+channel_mode: "gray" # or 'gray' or 'rgb'
+
+# Training Configuration
+training:
+  load_weights: False
+  save_interval: 100 # Save the training objects every 100 iterations
+  epochs: 20000
+  batch_size: 4
+  simulation_steps:
+    - [ 51, 61 ]
+    - [ 51, 61 ]
+
+# Initial State Configuration
+initial_state:
+  use_predefined_shape: False # If True, use 'shape_type', else use first image as initial state
+  shape_type: "noise" # choices: "noise", "gradient", "ball_gradient", "stripes"
+  alteration_method: [ "original", "flipped" ] # choices: "original", "flipped", "zeros", per each channel
+
+# Cellular Automaton Configuration
+automaton_settings:
+  neural_net:
+    optimizer:
+      type: "Adam"
+      learning_rate: 0.001
+      betas: [ 0.5, 0.5 ]
+    scheduler:
+      type: "ExponentialLR"
+      decay_rate: 0.9999
+    initial_weight_factor: 0.1
+  cell_fire_rate: 0.5
+  channels:
+    number: 2
+    value_range: [ -2.0, 3.0 ] # Range for each cell in the grid
+    padding:
+      mode: 'constant' # either 'constant' or 'circular'
+      size: 2
+      values: [ 1, 0 ] # Padding values for all channels
+
+# Filter Configuration
+filters:
+  learnable: False
+  use_moment_constraints: False
+  custom_init: True
+  number: 8
+  size: 3
+  initial_values: # Used when custom_init is False
+    - [[0, 0, 0], [-0.5, 0, 0.5], [0, 0, 0]]
+    - [[0, -0.5, 0], [0, 0, 0], [0, 0.5, 0]]
+    - [[0, 0, 0], [1, -2, 1], [0, 0, 0]]
+    - [[0, 1, 0], [0, -2, 0], [0, 1, 0]]
+    - [[0.25, 0, -0.25], [0, 0, 0], [-0.25, 0, 0.25]]
+    - [[-0.5, 0, 0.5], [1, 0, -1], [-0.5, 0, 0.5]]
+    - [[-0.5, 1, -0.5], [0, 0, 0], [0.5, -1, 0.5]]
+    - [[1, -2, 1], [-2, 4, -2], [1, -2, 1]]
+  prescribed_moments: # Used when use_moment_constraints is True
+    - [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+    - [[0, 1, 0], [0, 0, 0], [0, 0, 0]]
+    - [[0, 0, 1], [0, 0, 0], [0, 0, 0]]
+    - [[0, 0, 0], [1, 0, 0], [0, 0, 0]]
+    - [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+    - [[0, 0, 0], [0, 0, 1], [0, 0, 0]]
+    - [[0, 0, 0], [0, 0, 0], [1, 0, 0]]
+    - [[0, 0, 0], [0, 0, 0], [0, 1, 0]]
+    # - [[0, 0, 0], [0, 0, 0], [0, 0, 1]]
+
+# Loss Configuration
+loss:
+  type: "l1_loss"
+  regularization_factor: 0.0
+  filters_factor: 10.0 # Used when learnable_filters is True
+
+# Additional Model Parameters (specific to 'PINCA')
+pinca_specific:
+  term_max_power: 2
+
+# Additional Model Parameters (specific to 'NCA')
+nca_specific:
+  hidden_layer_size: 64
