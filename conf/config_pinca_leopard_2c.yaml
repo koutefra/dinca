@@ -1,0 +1,102 @@
+name: config_pinca_leopard_2c
+
+image_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/data/leopard/100x100
+output_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c
+model_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c/model.pth
+loss_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c/loss.pkl
+wandb_disabled: False
+wandb_project_name: 'PINCA'
+wandb_experiment_name: 'pinca_leopard_2c'
+model:
+  type: "PINCA" # choices: "PINCA", "NCA"
+channel_mode: "gray" # or 'gray' or 'rgb'
+
+# Training Configuration
+training:
+  load_weights: False
+  save_interval: 100
+  pruning:
+    enable: True
+    schedule: 
+      - iteration: 250
+        percentile: 25
+      - iteration: 500
+        percentile: 30
+      - iteration: 750
+        percentile: 40
+      - iteration: 1000
+        percentile: 50
+      - iteration: 1250
+        percentile: 60
+      - iteration: 1500
+        percentile: 70
+      - iteration: 1750
+        percentile: 75
+  epochs: 3000
+  batch_size: 4
+  simulation_steps:
+    - [ 30, 35 ]
+    - [ 30, 35 ]
+
+
+# Initial State Configuration
+initial_state:
+  use_predefined_shape: False # If True, use 'shape_type', else use first image as initial state
+  shape_type: "noise" # choices: "noise", "gradient", "ball_gradient", "stripes"
+  alteration_method: [ "original", "flipped" ] # choices: "original", "flipped", "zeros", per each channel
+
+# Cellular Automaton Configuration
+automaton_settings:
+  neural_net:
+    optimizer:
+      type: "Adam"
+      learning_rate: 0.001
+      betas: [ 0.9, 0.999 ]
+    scheduler:
+      type: "ExponentialLR"
+      decay_rate: 0.9999
+    initial_weight_factor: 0.1
+  cell_fire_rate: 0.5
+  channels:
+    number: 2
+    value_range: [ 0.0, 1.0 ] # Range for each cell in the grid
+    padding:
+      mode: 'circular' # either 'constant' or 'circular'
+      size: 5
+      values: [ 1, 0 ] # Padding values for all channels
+
+# Filter Configuration
+filters:
+  learnable: False
+  use_moment_constraints: False
+  custom_init: True
+  number: 3
+  size: 3
+  initial_values: # Used when custom_init is False
+    - [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+    - [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+    - [[1, 2, 1], [2, -12, 2], [1, 2, 1]]
+  prescribed_moments: # Used when use_moment_constraints is True
+    - [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+    - [[0, 1, 0], [0, 0, 0], [0, 0, 0]]
+    - [[0, 0, 1], [0, 0, 0], [0, 0, 0]]
+    - [[0, 0, 0], [1, 0, 0], [0, 0, 0]]
+    - [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+    - [[0, 0, 0], [0, 0, 1], [0, 0, 0]]
+    - [[0, 0, 0], [0, 0, 0], [1, 0, 0]]
+    - [[0, 0, 0], [0, 0, 0], [0, 1, 0]]
+    - [[0, 0, 0], [0, 0, 0], [0, 0, 1]]
+
+# Loss Configuration
+loss:
+  type: "l1_loss"
+  regularization_factor: 1.0
+  filters_factor: 0.0 # Used when learnable_filters is True
+
+# Additional Model Parameters (specific to 'PINCA')
+pinca_specific:
+  term_max_power: 3
+
+# Additional Model Parameters (specific to 'NCA')
+nca_specific:
+  hidden_layer_size: 64

@@ -102,7 +102,7 @@ class DataLoader:
             'ball_gradient': gen_ball_gradient,
             'stripes': gen_stripes
         }
-        return state_gen_fn[shape_type](width, height)
+        return state_gen_fn[shape_type]()
 
 
     def _setup_init_state_from_predefined_shape(self, width: int, height: int, n_channels: int, shape_type: str):

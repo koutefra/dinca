@@ -35,8 +35,8 @@ class WeightedPixelLoss(BaseLoss):
         self.reg_factor = reg_factor
         
     def compute(self, model, x_outs, x_refs):
-        loss_pixel = sum([self._get_loss(x_out, x_ref) for x_out, x_ref in zip(x_outs, x_refs)])
-        loss_reg = sum(p.abs().sum() for p in model.output.parameters() if p.requires_grad)
+        loss_pixel = sum([self._get_loss(x_out, x_ref) for x_out, x_ref in zip(x_outs, x_refs)]) / len(x_refs)
+        loss_reg = sum(p.abs().sum() for p in model.output.parameters() if p.requires_grad) / model.n_output_params
         loss_reg_weighted = loss_reg * self.reg_factor
         total_loss = loss_pixel + loss_reg_weighted
 
@@ -60,12 +60,12 @@ class FilterAwareWeightedPixelLoss(BaseLoss):
         k2m = K2M([filter_size, filter_size]).to(filters.device)
         moments = k2m(filters.double())
         moments = moments.float()
-        return moments
+        return moments / len(filters)
 
 
     def compute(self, model, x_outs, x_refs):
-        loss_pixel = sum([self._get_loss(x_out, x_ref) for x_out, x_ref in zip(x_outs, x_refs)])
-        loss_reg = sum(p.abs().sum() for p in model.output.parameters() if p.requires_grad)
+        loss_pixel = sum([self._get_loss(x_out, x_ref) for x_out, x_ref in zip(x_outs, x_refs)]) / len(x_refs)
+        loss_reg = sum(p.abs().sum() for p in model.output.parameters() if p.requires_grad) / model.n_output_params
         loss_reg_weighted = loss_reg * self.reg_factor
 
         moments = self._get_moments(model.get_filters())[:, 0, :, :]

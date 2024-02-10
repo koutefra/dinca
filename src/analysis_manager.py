@@ -10,8 +10,10 @@ import seaborn as sns
 
 
 class AnalysisManager:
-    def __init__(self, figures_folder_path: str):
-        self.figures_folder_path = figures_folder_path
+    def __init__(self, figures_folder_path: str = None):
+        self.save_enabled = figures_folder_path is not None
+        if self.save_enabled:
+            self.figures_folder_path = figures_folder_path
 
 
     def get_loss_plot(self, loss_history):
@@ -45,29 +47,46 @@ class AnalysisManager:
             ax.set_ylabel("Log Loss Value")
             ax.legend()
 
-        plot_path = os.path.join(self.figures_folder_path, 'loss_plot.png')
-        fig.savefig(plot_path)
-        plt.close(fig)
+        if self.save_enabled:
+            plot_path = os.path.join(self.figures_folder_path, 'loss_plot.png')
+            fig.savefig(plot_path)
+            plt.close(fig)
+            
+        return fig
 
 
     def get_simulation_plot(self, model: torch.nn.Module, x_init_batch: torch.Tensor, n_steps: int):
         x_outs = [x_init_batch[0:1, :, :, :]]
         for step in range(n_steps):
-            x_out = model(x_outs[-1])[0:1, :, :, :] # take the first batch
+            x_out = model(x_outs[-1])[0:1, :, :, :]  # take the first batch
             x_outs.append(x_out)
 
-        x_outs_tensor = torch.cat(x_outs, dim=0)[:, :, :, 0:1] # take only the first image
-        x_outs_tensor = x_outs_tensor.permute(0, 3, 1, 2)
+        # x_outs_np = np.stack([x.detach().cpu().numpy() for x in x_outs])
+        # np.save(os.path.join(self.figures_folder_path, 'generated_states.npy'), x_outs_np)
 
-        # Reshape and permute tensor to [n_steps * batch_size, n_channels, width, height]
-        grid = torchvision.utils.make_grid(x_outs_tensor, ncols=int(np.sqrt(len(x_outs))))
+        # We will use matplotlib subplots to plot each image
+        ncols = int(np.sqrt(n_steps + 1))  # Determine the number of columns
+        nrows = (n_steps + 1) // ncols + ((n_steps + 1) % ncols > 0)  # Determine the number of rows
 
-        # Convert to PIL Image for saving
-        np_img = grid.detach().cpu().numpy().transpose(1, 2, 0)
-        pil_img = Image.fromarray((np_img * 255).astype(np.uint8))
+        fig, axes = plt.subplots(nrows, ncols, figsize=(10 + ncols * 2, 10 + nrows * 2))
+        axes = axes.flatten()  # Flatten the 2D array of axes for easy iteration
 
-        plot_path = os.path.join(self.figures_folder_path, 'simulation.png')
-        pil_img.save(plot_path)
+        for i, x_out in enumerate(x_outs):
+            img = x_out[0, :, :, 0].detach().cpu().numpy()  # Assuming single channel images
+            axes[i].imshow(img, cmap='gray')  # You can change the color map if needed
+            axes[i].axis('off')  # Turn off axis numbering
+
+        # Hide any unused subplots
+        for ax in axes[len(x_outs):]:
+            ax.axis('off')
+        plt.tight_layout()
+        
+        if self.save_enabled:
+            plot_path = os.path.join(self.figures_folder_path, 'simulation.png')
+            plt.savefig(plot_path)
+            plt.close(fig)  # Close the figure to free memory
+        
+        return fig
 
 
     def get_batch_plot(self, x_outs: List[torch.Tensor], x_init: torch.Tensor, x_refs: List[torch.Tensor], mode: str):
@@ -76,13 +95,16 @@ class AnalysisManager:
         # x_refs[i] is oh shape [width, height, n_channels]
 
         emerged_images = [x_out.detach().cpu().numpy() for x_out in x_outs]  # List of [batch_size, width, height, n_channels]
+        ref_images = [x_ref.detach().cpu().numpy() for x_ref in x_refs]
         init_image = x_init.detach().cpu().numpy()  # Shape: [width, height, n_channels]
-        predefined_images = [init_image] + [x_ref.detach().cpu().numpy() for x_ref in x_refs]  # List of [width, height, n_channels]
+        padding_size = int((emerged_images[0].shape[1] - ref_images[0].shape[1]) / 2)
+        p = padding_size
+        predefined_images = [init_image[p:-p, p:-p, :]] + ref_images  # List of [width, height, n_channels]
 
         batch_size = emerged_images[0].shape[0]
         n_ref_states = len(predefined_images)
 
-        fig, axs = plt.subplots(batch_size + 1, n_ref_states, figsize=[15, 8])
+        fig, axs = plt.subplots(batch_size + 1, n_ref_states, figsize=[25, 18])
 
         # Plot emerged images
         for i in range(batch_size):
@@ -101,9 +123,12 @@ class AnalysisManager:
 
         plt.tight_layout()
 
-        plot_path = os.path.join(self.figures_folder_path, 'batch_plot.png')
-        plt.savefig(plot_path)
-        plt.close()
+        if self.save_enabled:
+            plot_path = os.path.join(self.figures_folder_path, 'batch_plot.png')
+            plt.savefig(plot_path)
+            plt.close()
+            
+        return fig
 
 
     def get_filter_values_plot(self, filters: torch.Tensor):
@@ -126,7 +151,7 @@ class AnalysisManager:
         vmax = max(abs(min_val), abs(max_val))
         vmin = -vmax
 
-        plt.figure(figsize=(grid_size * 2, grid_size * 2))
+        plt.figure(figsize=(10 + grid_size * 2, 10 + grid_size * 2))
         for i in range(n_filters):
             ax = plt.subplot(grid_size, grid_size, i + 1)
             filter_values = filters[i, 0, :, :].cpu().detach().numpy()
@@ -140,6 +165,9 @@ class AnalysisManager:
         cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
         plt.colorbar(ax.collections[0], cax=cbar_ax)
 
-        plot_path = os.path.join(self.figures_folder_path, 'filters_plot.png')
-        plt.savefig(plot_path)
-        plt.close()
+        if self.save_enabled:
+            plot_path = os.path.join(self.figures_folder_path, 'filters_plot.png')
+            plt.savefig(plot_path)
+            plt.close()
+            
+        return fig

@@ -27,7 +27,7 @@ class TrainingManager:
         :param model_loader: ModelSetupManager instance for setting up models.
         """
         self.config = config
-        self.figures_folder_path = config['figures_folder']
+        self.output_folder_path = config['output_folder']
         self.model_path = config['model_path']
         self.loss_path = config['loss_path']
         self.device = torch.device(config['device']) if torch.cuda.is_available() else torch.device("cpu")
@@ -37,6 +37,10 @@ class TrainingManager:
         self.simulation_steps = config['training']['simulation_steps']
         self.save_interval = config['training']['save_interval']
         self.batch_size = config['training']['batch_size']
+        self.enable_pruning = config['training']['pruning']['enable']
+        if self.enable_pruning:
+            self.pruning_percentiles = {sched['iteration']: sched['percentile'] for sched in config['training']['pruning']['schedule']}
+        
         self.loss_history = []
 
         self.data_loader = data_loader
@@ -51,7 +55,10 @@ class TrainingManager:
 
 
     def train(self):
+        best_loss = float('inf')
         x_init_batch = self.x_init.unsqueeze(0).repeat(self.batch_size, 1, 1, 1)
+        np.save(os.path.join(self.output_folder_path, 'init_state.npy'), x_init_batch.detach().cpu().numpy())
+
         for i in tqdm(range(len(self.loss_history) + 1, self.n_epochs + 1)):
             x_outs = [x_init_batch]
             for step_range in self.simulation_steps:
@@ -59,24 +66,31 @@ class TrainingManager:
                 x_out = self.model(x_outs[-1], n)
                 x_outs.append(x_out)
 
-            total_loss, loss_elements = self.loss_evaluator.compute(self.model, x_outs, self.x_refs)
+            total_loss, loss_elements = self.loss_evaluator.compute(self.model, x_outs[1:], self.x_refs)
             self.loss_history.append(loss_elements)
 
             self.optimizer.zero_grad()
             total_loss.backward()
             self.optimizer.step()
             self.scheduler.step()
+            self.model.freeze_pruned_weights()
+            
+            if total_loss < best_loss:
+                best_loss = total_loss
+                torch.save(self.model.state_dict(), os.path.join(self.output_folder_path, 'best_model.pth'))
+
+            if self.enable_pruning and i in self.pruning_percentiles:
+                self.model.prune_weights(self.pruning_percentiles[i])
 
             if not self.wandb_disabled:
                 wandb.log({"total_loss": total_loss, **loss_elements})
 
             if i % self.save_interval == 0:
-                # save model and loss
                 torch.save(self.model.state_dict(), self.model_path)
                 with open(self.loss_path, 'wb') as file:
                     pickle.dump(self.loss_history, file)
 
-                analysis_manager = AnalysisManager(self.figures_folder_path)
+                analysis_manager = AnalysisManager(self.output_folder_path)
                 analysis_manager.get_loss_plot(self.loss_history)
                 steps_sum = sum([step_range[1] for step_range in self.simulation_steps])
                 analysis_manager.get_simulation_plot(self.model, x_init_batch, steps_sum)
@@ -105,7 +119,7 @@ class TrainingManager:
             use_predefined_shape=config['initial_state']['use_predefined_shape'],
             shape_type=config['initial_state']['shape_type']
         )
-        self.x_init = torch.tensor(self.x_init).to(self.device)
+        self.x_init = torch.tensor(self.x_init).to(self.device).float()
         self.x_refs = torch.tensor(self.data_loader.get_reference_states()).to(self.device)
 
 
@@ -159,7 +173,7 @@ class TrainingManager:
     def _setup_loss_evaluator(self):
         config = self.config
         if config['filters']['use_moment_constraints']:
-            prescribed_moments = torch.tensor(config['filters']['prescribed_moments']).to(self.device)
+            prescribed_moments = torch.tensor(config['filters']['prescribed_moments'], dtype=torch.float32).to(self.device)
             self.loss_evaluator = self.model_loader.setup_filter_aware_weighted_pixel_loss(
                 torch_loss_name=config['loss']['type'],
                 padding_size=config['automaton_settings']['channels']['padding']['size'],
