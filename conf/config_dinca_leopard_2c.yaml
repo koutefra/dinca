@@ -1,14 +1,14 @@
-name: config_pinca_leopard_2c
+name: config_dinca_leopard_2c
 
-image_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/data/leopard/100x100
-output_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c
-model_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c/model.pth
-loss_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_pinca_leopard_2c/loss.pkl
+image_folder: ./data/leopard/100x100
+output_folder: ./out/model_dinca_leopard_2c
+model_path: ./out/model_dinca_leopard_2c/model.pth
+loss_path: ./out/model_dinca_leopard_2c/loss.pkl
 wandb_disabled: False
-wandb_project_name: 'PINCA'
-wandb_experiment_name: 'pinca_leopard_2c'
+wandb_project_name: 'DINCA'
+wandb_experiment_name: 'dinca_leopard_2c'
 model:
-  type: "PINCA" # choices: "PINCA", "NCA"
+  type: "DINCA" # choices: "DINCA", "NCA"
 channel_mode: "gray" # or 'gray' or 'rgb'
 
 # Training Configuration
@@ -93,8 +93,8 @@ loss:
   regularization_factor: 1.0
   filters_factor: 0.0 # Used when learnable_filters is True
 
-# Additional Model Parameters (specific to 'PINCA')
-pinca_specific:
+# Additional Model Parameters (specific to 'DINCA')
+dinca_specific:
   term_max_power: 3
 
 # Additional Model Parameters (specific to 'NCA')

@@ -1,6 +1,6 @@
 import os
 from typing import Optional, List, Tuple, Dict, Any
-from src.models import NCA, PINCA
+from src.models import NCA, DINCA
 from src.loss import WeightedPixelLoss, FilterAwareWeightedPixelLoss
 from src.loader import DataLoader, ModelSetupManager
 from src.analysis_manager import AnalysisManager
@@ -143,9 +143,9 @@ class TrainingManager:
         if model_type == 'NCA':
             common_model_args['hidden_size'] = config['nca_specific']['hidden_layer_size']
             self.model = self.model_loader.setup_NCA(**common_model_args)
-        elif model_type == 'PINCA':
-            common_model_args['term_max_power'] = config['pinca_specific']['term_max_power']
-            self.model = self.model_loader.setup_PINCA(**common_model_args)
+        elif model_type == 'DINCA':
+            common_model_args['term_max_power'] = config['dinca_specific']['term_max_power']
+            self.model = self.model_loader.setup_DINCA(**common_model_args)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 

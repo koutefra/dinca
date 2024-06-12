@@ -2,7 +2,7 @@ import os
 import numpy as np
 import imageio
 from typing import List, Tuple
-from src.models import NCA, PINCA
+from src.models import NCA, DINCA
 from src.loss import WeightedPixelLoss, FilterAwareWeightedPixelLoss
 import torch
 import torch.optim as optim
@@ -139,12 +139,12 @@ class ModelSetupManager:
         return self.model
 
 
-    def setup_PINCA(self, term_max_power: int, n_channels: int, fire_rate: float, init_weight_factor: float,
+    def setup_DINCA(self, term_max_power: int, n_channels: int, fire_rate: float, init_weight_factor: float,
                     value_range: Tuple[float, float], filter_size: int, n_filters: int, learnable_filters: bool,
                     padding_mode: str, filters_custom_init: bool, device: torch.device,
                     filters_init_values: List[List[List[float]]] = None,
                     padding_values: float = None):
-        self.model = PINCA(term_max_power, n_channels, fire_rate, init_weight_factor, value_range, filter_size,
+        self.model = DINCA(term_max_power, n_channels, fire_rate, init_weight_factor, value_range, filter_size,
                          n_filters, learnable_filters, padding_mode, filters_custom_init, device,
                            filters_init_values, padding_values)
         return self.model

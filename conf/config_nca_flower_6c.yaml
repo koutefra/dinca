@@ -1,14 +1,14 @@
 name: config_nca_flower_6c
 
-image_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/data/flower
-output_folder: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_nca_flower_6c
-model_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_nca_flower_6c/model.pth
-loss_path: /home/datalab/notebooks/Frantisek/diplomka/submission_code_real/PINCA/paper/out/model_nca_flower_6c/loss.pkl
+image_folder: ./data/flower
+output_folder: ./out/model_nca_flower_6c
+model_path: ./out/model_nca_flower_6c/model.pth
+loss_path: ./out/model_nca_flower_6c/loss.pkl
 wandb_disabled: False
-wandb_project_name: 'PINCA'
+wandb_project_name: 'DINCA'
 wandb_experiment_name: 'nca_flower_6c'
 model:
-  type: "NCA" # choices: "PINCA", "NCA"
+  type: "NCA" # choices: "DINCA", "NCA"
 channel_mode: "gray" # or 'gray' or 'rgb'
 
 # Training Configuration
@@ -86,8 +86,8 @@ loss:
   regularization_factor: 0.0
   filters_factor: 0.0 # Used when learnable_filters is True
 
-# Additional Model Parameters (specific to 'PINCA')
-pinca_specific:
+# Additional Model Parameters (specific to 'DINCA')
+dinca_specific:
   term_max_power: 3
 
 # Additional Model Parameters (specific to 'NCA')

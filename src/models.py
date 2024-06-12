@@ -151,7 +151,7 @@ class NCA(BaseNCA):
     
 
 
-class PINCA(BaseNCA):
+class DINCA(BaseNCA):
     def __init__(self, term_max_power: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
